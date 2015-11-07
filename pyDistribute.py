@@ -306,6 +306,18 @@ if os.path.isfile(scriptpath + "\\Runtime\\" + config["nsisConfig"]['OutFileName
 run_command(extractDefaultPython(config, quoteFolder(scriptpath + '\\Runtime\\Python\\Python' + config["nsisConfig"]['PythonVersion'] + '.7z'), config["buildConfig"]['pythonReleasePath']))
 
 print("############################################################################")
+print("# include Temp Liberarys if added from other script")
+print("############################################################################")
+if os.path.exists(scriptpath + "\\TempLib"):
+    copytree(scriptpath + "\\TempLib", config["buildConfig"]['pythonReleasePath'] + '\\Lib')
+
+if os.path.exists(scriptpath + "\\TempDll"):
+    copytree(scriptpath + "\\TempDll", config["buildConfig"]['pythonReleasePath'] + '\\DLLs')
+
+shutil.rmtree(scriptpath + '/TempLib' ,ignore_errors=True)
+shutil.rmtree(scriptpath + '/TempDll' ,ignore_errors=True)
+
+print("############################################################################")
 print("# Drop Files")
 print("############################################################################")
 
