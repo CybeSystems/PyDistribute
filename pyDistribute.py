@@ -393,8 +393,8 @@ print("# Create named interpreter")
 print("############################################################################")
 
 if config["buildConfig"]["pythonCustomInterpreter"]:
-    run_command(getCybeSystemsIconChangerFlags(config, config["buildConfig"]['pythonReleasePath'], config["buildConfig"]["pythonExeName"]))
-    run_command(getCybeSystemsIconChangerFlags(config, config["buildConfig"]['pythonReleasePath'], config["buildConfig"]["pythonWExeName"]))
+    run_command(getCybeSystemsIconChangerFlags(config, config["buildConfig"]['pythonReleasePath'], "python.exe", config["buildConfig"]["pythonExeName"]))
+    run_command(getCybeSystemsIconChangerFlags(config, config["buildConfig"]['pythonReleasePath'], "pythonw.exe", config["buildConfig"]["pythonWExeName"]))
 
 if config["buildConfig"]['pyFileMinfifier'] != 0:
     # 1: Compile to pyc

@@ -131,10 +131,10 @@ def extractDefaultPython(config, path, releasePath):
     flags.append(path)
     return(flags)
 
-def getCybeSystemsIconChangerFlags(config, releasePath, newname):
+def getCybeSystemsIconChangerFlags(config, releasePath, oldname, newname):
     flags=[]
     flags.append(config["buildConfig"]["cyDistributePath"] + '\\Runtime\\CybeSystemsIconChanger\\changeIcon.exe')
-    flags.append(quoteFolder(releasePath + '\\python.exe'))
+    flags.append(quoteFolder(releasePath + '\\' + oldname))
     flags.append(quoteFolder(releasePath + '\\' + newname))
     flags.append(quoteFolder(config["buildConfig"]['appIcon']))
     return(flags)
