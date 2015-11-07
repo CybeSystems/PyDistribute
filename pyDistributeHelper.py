@@ -1,9 +1,5 @@
 import os, sys, glob, subprocess, platform, compileall, shutil, distutils
 
-scriptpath = os.path.realpath(os.path.dirname(sys.argv[0])).replace('/','\\')
-scriptpathParentFolder = os.path.dirname(scriptpath)
-sys.path.insert(0, os.path.join(scriptpath, 'lib'))
-
 ###################################################################################################
 # Functions
 #
@@ -19,6 +15,27 @@ def dict_merge(a, b):
         else:
             result[k] = deepcopy(v)
     return result
+
+def validatePyDistribute(config):
+    errorCount = 0
+    if not os.path.isfile(config['runtime']['configFile'] + "X"):
+        print("Config File " + config['runtime']['configFile'] + " not exist")
+        errorCount = errorCount + 1
+
+
+    raise SystemExit()
+    return errorCount
+
+def parseRequirementsTxt(config, requirements):
+    requirements = open(requirements, "r")
+    lines=requirements.readlines()
+    for line in lines:
+        line = line.strip()
+        if not line.startswith("#") and line != "":
+            print (line)
+            run_command(pip3install(config, line))
+
+
 
 def run_command(command):
     if isinstance(command, list):
@@ -49,7 +66,7 @@ def runCommandWithPath(command, path, includeSysPath = True):
         commandEnviron["PATH"] = path + ";" + os.environ["PATH"]
         #We need to alternate the APPDATA Path -> Nuitka is searching for depends.exe in AppData\\Roaming
         # It searches for zip file NOT for binaries (e.g. C:\Users\USERNAME\AppData\Roaming\nuitka\depends22_x86.zip
-        commandEnviron["APPDATA"] = scriptpath + "\\Runtime"
+        commandEnviron["APPDATA"] = config["buildConfig"]["cyDistributePath"] + "\\Runtime"
     else:
         commandEnviron["PATH"] = path
     #commandEnviron["PYTHONPATH"] = path
@@ -91,65 +108,33 @@ def silentremove(filename):
     except:
         pass
 
-def getNsisFlags(config, consoleMode=False):
-    flags=[]
-    flags.append(config["buildConfig"]["cyDistributePath"] + '\\Runtime\\NSIS\\makensis.exe')
-    flags.append('/DFileIcon=' + quoteParameter(config["buildConfig"]['appIcon']))
-    flags.append('/DPythonVersion=' + config["nsisConfig"]['PythonVersion'])
 
-    flags.append('/DProductName=' + quoteParameter(config["nsisConfig"]['ProductName']))
-    flags.append('/DComments=' + quoteParameter(config["nsisConfig"]['Comments']))
-    flags.append('/DCompanyName=' + quoteParameter(config["nsisConfig"]['CompanyName']))
-    flags.append('/DLegalCopyright=' + quoteParameter(config["nsisConfig"]['LegalCopyright']))
-    flags.append('/DFileDescription=' + quoteParameter(config["nsisConfig"]['FileDescription']))
-    flags.append('/DFileVersion=' + config["nsisConfig"]['FileVersion'])
-    flags.append('/DProductVersion=' + config["nsisConfig"]['ProductVersion'])
-    flags.append('/DInternalName=' + quoteParameter(config["nsisConfig"]['InternalName']))
-    flags.append('/DLegalTrademarks=' + quoteParameter(config["nsisConfig"]['LegalTrademarks']))
-    flags.append('/DOriginalFilename=' + quoteParameter(config["nsisConfig"]['OriginalFilename']))
-    flags.append('/DPrivateBuild=' + quoteParameter(config["nsisConfig"]['PrivateBuild']))
-    flags.append('/DSpecialBuild=' + quoteParameter(config["nsisConfig"]['SpecialBuild']))
-    flags.append('/DPyStartFile=' + config["buildConfig"]['startFile'])
-    if config["buildConfig"]["pythonCustomInterpreter"]:
-        flags.append('/DInterpreter=' + config["buildConfig"]["pythonExeName"])
-        flags.append('/DInterpreterW=' + config["buildConfig"]["pythonWExeName"])
-    if consoleMode == True:
-        flags.append('/DOutFileName=' + config["nsisConfig"]['OutConsoleFileName'])
-        flags.append('/DConsoleMode=1')
+def detectOS():
+    # Detect OS platform and set the approriate script paths, i.e. build/[patform]
+    if platform.system() == 'Darwin':
+        print('Mac OS detected')
+        return 'osx'
+    elif platform.system() == 'Linux':
+        print('Linux OS detected')
+        return 'linux'
+    elif platform.system() == 'Windows':
+        print('Windows OS detected')
+        os.environ["PYTHONPATH"] = sys.exec_prefix
+        os.environ["PATH"] = sys.exec_prefix + '\\Scripts'
+        return 'windows'
+    # make sure Mac/Linux user is not root
+    if (platform.system() == 'Darwin' or platform.system() == 'Linux') and os.getuid() == 0:
+        print('This script does not require sudo!')
+        print("To avoid changing PyQt permissions, simply run with 'python build.py'")
+        sys.exit()
+
+def detectArchitecture():
+    if sys.maxsize == 2147483647:
+        print ("Running x86")
+        return 'X86'
     else:
-        flags.append('/DOutFileName=' + config["nsisConfig"]['OutFileName'])
-        flags.append('/DConsoleMode=0')
-    #ToDo:
-    flags.append('/DPyFolder=Python')
-    flags.append(scriptpath + '\\Runtime\\CybeSystemsPortable.nsi')
-    return(flags)
-
-def extractDefaultPython(config, path, releasePath):
-    flags=[]
-    flags.append(config["buildConfig"]["cyDistributePath"] + '\\Runtime\\7zip\\7z.exe')
-    flags.append('x -o' + quoteFolder(releasePath))
-    flags.append(path)
-    return(flags)
-
-def getCybeSystemsIconChangerFlags(config, releasePath, oldname, newname):
-    flags=[]
-    flags.append(config["buildConfig"]["cyDistributePath"] + '\\Runtime\\CybeSystemsIconChanger\\changeIcon.exe')
-    flags.append(quoteFolder(releasePath + '\\' + oldname))
-    flags.append(quoteFolder(releasePath + '\\' + newname))
-    flags.append(quoteFolder(config["buildConfig"]['appIcon']))
-    return(flags)
-
-def zipStdLib(config):
-    flags=[]
-    flags.append(config["buildConfig"]["cyDistributePath"] + '\\Runtime\\7zip\\7z.exe')
-    flags.append('a -tzip -r -mx=9 ' + quoteFolder(config["buildConfig"]['pythonReleasePath'] + "\\Python") + config['nsisConfig']['PythonVersion'] + '.zip')
-    flags.append(quoteFolder(config["buildConfig"]['pythonReleasePath'] + "\\lib\\*"))
-    return(flags)
-
-dontUpx=[]
-dontUpx.append("qwindows.dll")
-dontUpx.append("qoffscreen.dll")
-dontUpx.append("qminimal.dll")
+        print ("Running x64")
+        return 'X64'
 
 def compressUpx(config,extension):
     for root, _, files in os.walk(config["buildConfig"]['pythonReleasePath']):
@@ -157,23 +142,11 @@ def compressUpx(config,extension):
             fullpath = os.path.join(root, afile)
             if os.path.splitext(afile)[1] == extension:
                 print (afile)
-                if afile not in dontUpx:
+                if afile not in config["buildConfig"]["upxIgnore"]:
                     print("UPX compressing", fullpath)
                     run_command(upxFile(config, fullpath))
 
-def upxFile(config, file):
-    flags=[]
-    flags.append(config["buildConfig"]["cyDistributePath"] + '\\Runtime\\upx.exe')
-    flags.append(quoteFolder(file))
-    return(flags)
 
-def pyminifierFile(fullpath):
-    flags=[]
-    flags.append(sys.executable)
-    flags.append("-m pyminifier")
-    flags.append("--outfile " + fullpath.replace("\\","/"))
-    flags.append(fullpath.replace("\\","/"))
-    return(flags)
 
 def compressFiles(path,extension):
     for root, _, files in os.walk(path):
@@ -258,7 +231,108 @@ def countDllFilesExtension(path,extension):
                 pydFound = pydFound +1
     return pydFound
 
-#Create Nuitka Bootstrapper
+
+###################################################################################################
+# CMDLine Commands
+###################################################################################################
+
+def pip3install(config, package):
+    flags=[]
+    flags.append('Release\\Scripts\\pip3.exe')
+    flags.append("install")
+    flags.append("-I --root " + quoteFolder(config["buildConfig"]['pythonReleasePath'] + '\\Release\\Lib\\site-packages'))
+    flags.append(package)
+    return(flags)
+
+def runPyDistribute(pyDistributeFolder, configFile):
+    flags=[]
+    flags.append(sys.executable)
+    flags.append(pyDistributeFolder + '\\pyDistribute.py')
+    flags.append('--config=' + configFile)
+    return(flags)
+
+def createPortableAppsInstaller(PortableAppsInstallerPath, releaseFolderName):
+    flags=[]
+    flags.append(PortableAppsInstallerPath)
+    flags.append(releaseFolderName)
+    return(flags)
+
+def create7zipRelease(pyDistributeFolder, releaseFolderName, outFile):
+    flags=[]
+    flags.append(pyDistributeFolder + '\\Runtime\\7zip\\7z.exe')
+    flags.append('a -r -t7z -mx=9 ' + quoteFolder(outFile))
+    flags.append(quoteFolder(releaseFolderName))
+    return(flags)
+
+def getNsisFlags(config, consoleMode=False):
+    flags=[]
+    flags.append(config["buildConfig"]["cyDistributePath"] + '\\Runtime\\NSIS\\makensis.exe')
+    flags.append('/DFileIcon=' + quoteParameter(config["buildConfig"]['appIcon']))
+    flags.append('/DPythonVersion=' + config["nsisConfig"]['PythonVersion'])
+
+    flags.append('/DProductName=' + quoteParameter(config["nsisConfig"]['ProductName']))
+    flags.append('/DComments=' + quoteParameter(config["nsisConfig"]['Comments']))
+    flags.append('/DCompanyName=' + quoteParameter(config["nsisConfig"]['CompanyName']))
+    flags.append('/DLegalCopyright=' + quoteParameter(config["nsisConfig"]['LegalCopyright']))
+    flags.append('/DFileDescription=' + quoteParameter(config["nsisConfig"]['FileDescription']))
+    flags.append('/DFileVersion=' + config["nsisConfig"]['FileVersion'])
+    flags.append('/DProductVersion=' + config["nsisConfig"]['ProductVersion'])
+    flags.append('/DInternalName=' + quoteParameter(config["nsisConfig"]['InternalName']))
+    flags.append('/DLegalTrademarks=' + quoteParameter(config["nsisConfig"]['LegalTrademarks']))
+    flags.append('/DOriginalFilename=' + quoteParameter(config["nsisConfig"]['OriginalFilename']))
+    flags.append('/DPrivateBuild=' + quoteParameter(config["nsisConfig"]['PrivateBuild']))
+    flags.append('/DSpecialBuild=' + quoteParameter(config["nsisConfig"]['SpecialBuild']))
+    flags.append('/DPyStartFile=' + config["buildConfig"]['startFile'])
+    if config["buildConfig"]["pythonCustomInterpreter"]:
+        flags.append('/DInterpreter=' + config["buildConfig"]["pythonExeName"])
+        flags.append('/DInterpreterW=' + config["buildConfig"]["pythonWExeName"])
+    if consoleMode == True:
+        flags.append('/DOutFileName=' + config["nsisConfig"]['OutConsoleFileName'])
+        flags.append('/DConsoleMode=1')
+    else:
+        flags.append('/DOutFileName=' + config["nsisConfig"]['OutFileName'])
+        flags.append('/DConsoleMode=0')
+    #ToDo:
+    flags.append('/DPyFolder=Python')
+    flags.append(config["buildConfig"]["cyDistributePath"] + '\\Runtime\\CybeSystemsPortable.nsi')
+    return(flags)
+
+def extractDefaultPython(config, path, releasePath):
+    flags=[]
+    flags.append(config["buildConfig"]["cyDistributePath"] + '\\Runtime\\7zip\\7z.exe')
+    flags.append('x -o' + quoteFolder(releasePath))
+    flags.append(path)
+    return(flags)
+
+def getCybeSystemsIconChangerFlags(config, releasePath, oldname, newname):
+    flags=[]
+    flags.append(config["buildConfig"]["cyDistributePath"] + '\\Runtime\\CybeSystemsIconChanger\\changeIcon.exe')
+    flags.append(quoteFolder(releasePath + '\\' + oldname))
+    flags.append(quoteFolder(releasePath + '\\' + newname))
+    flags.append(quoteFolder(config["buildConfig"]['appIcon']))
+    return(flags)
+
+def zipStdLib(config):
+    flags=[]
+    flags.append(config["buildConfig"]["cyDistributePath"] + '\\Runtime\\7zip\\7z.exe')
+    flags.append('a -tzip -r -mx=9 ' + quoteFolder(config["buildConfig"]['pythonReleasePath'] + "\\Python") + config['nsisConfig']['PythonVersion'] + '.zip')
+    flags.append(quoteFolder(config["buildConfig"]['pythonReleasePath'] + "\\lib\\*"))
+    return(flags)
+
+def upxFile(config, file):
+    flags=[]
+    flags.append(config["buildConfig"]["cyDistributePath"] + '\\Runtime\\upx.exe')
+    flags.append(quoteFolder(file))
+    return(flags)
+
+def pyminifierFile(fullpath):
+    flags=[]
+    flags.append(sys.executable)
+    flags.append("-m pyminifier")
+    flags.append("--outfile " + fullpath.replace("\\","/"))
+    flags.append(fullpath.replace("\\","/"))
+    return(flags)
+
 def nuitkaCompileMain(fullpath, buildConfig):
     nuitkaPath = os.path.dirname(sys.executable) + "\\Scripts\\nuitka"
     if not os.path.isfile(nuitkaPath):
@@ -298,6 +372,10 @@ def nuitkaCompileStandaloneMain(fullpath, buildConfig):
     flags.append("--remove-output")
     flags.append(fullpath.replace("\\","/"))
     return(flags)
+
+###################################################################################################
+# Drop unneeded files
+###################################################################################################
 
 def dropCacheFiles(path):
     print("############################################################################")
