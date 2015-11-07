@@ -1,0 +1,58 @@
+{
+    "buildConfig": {
+        "appIcon": "\\AppInfo\\appicon.ico",
+        "copyStartFile": true,
+        "createNuitkaLauncher": true,
+        "dllPath": "\\DLLs\\",
+        "libPath": "\\Lib\\site-packages\\",
+        "pyFileMinfifier": 0,
+        "pythonReleasePath": "\\Python",
+        "startFile": "PyQt5HelloWorld.py",
+        "upxIgnore": [
+            "qwindows.dll",
+            "qoffscreen.dll",
+            "qminimal.dll"
+        ],
+        "useCustomSite.py": true,
+        "useUpx": true,
+        "zipPythonStdLib": true
+    },
+    "nsisConfig": {
+        "Comments": "",
+        "CompanyName": "CybeSystems.com",
+        "CreateConsoleAndWindowVersion": true,
+        "FileDescription": "CybeSystems Python Launcher",
+        "FileVersion": "1.0.0.0",
+        "InternalName": "CybeSystems",
+        "LegalCopyright": "(c) CybeSystems.com",
+        "LegalTrademarks": "CybeSystems",
+        "OriginalFilename": "CybeSystems.exe",
+        "OutConsoleFileName": "CybeSystemsPortable-Console.exe",
+        "OutFileName": "CybeSystemsPortable.exe",
+        "PrivateBuild": "",
+        "ProductName": "CybeSystems",
+        "ProductVersion": "1.0.0.0",
+        "PythonVersion": "34",
+        "SpecialBuild": ""
+    },
+    "packagesArray": [
+        "psutil"
+    ],
+    "packagesHookArray": [
+        "PyQt5"
+    ],
+    "packagesPyQt5Array": [
+        "icudt53.dll",
+        "icuin53.dll",
+        "icuuc53.dll",
+        "libeay32.dll",
+        "ssleay32.dll",
+        "qt5core.dll",
+        "qt5gui.dll",
+        "qt5widgets.dll",
+        "Qt.pyd",
+        "QtCore.pyd",
+        "QtGui.pyd",
+        "QtWidgets.pyd"
+    ]
+}
