@@ -146,6 +146,7 @@ Function Launch
 
 	IfFileExists "$EXEDIR\${PyFolder}\${Interpreter}" OneFolder TwoFolderCheck
 	OneFolder:
+		SetOutPath "$EXEDIR\${PyFolder}"
 		${If} ${ConsoleMode} == "1"
 			Exec "cmd.exe /K $EXEDIR\${PyFolder}\${Interpreter} ${PyStartFile}" 	; EXEC app with parameters	
 		${Else}
@@ -156,7 +157,7 @@ Function Launch
 	TwoFolderCheck:
 		IfFileExists "$EXEDIR\App\${PyFolder}\${Interpreter}" TwoFolder ThreeFolderCheck
 		TwoFolder:
-			SetOutPath "$EXEDIR\App"
+			SetOutPath "$EXEDIR\App\${PyFolder}"
 			${If} ${ConsoleMode} == "1"
 				Exec "cmd.exe /K $EXEDIR\App\${PyFolder}\${Interpreter} ${PyStartFile}" 	; EXEC app with parameters	
 			${Else}
@@ -167,7 +168,7 @@ Function Launch
 	ThreeFolderCheck:
 		IfFileExists "$EXEDIR\${ProductName}\App\${PyFolder}\${Interpreter}" ThreeFolder PastMissingCheck
 		ThreeFolder:
-			SetOutPath "$EXEDIR\${ProductName}\App"
+			SetOutPath "$EXEDIR\${ProductName}\App${PyFolder}"
 			${If} ${ConsoleMode} == "1"
 				Exec "cmd.exe /K $EXEDIR\${ProductName}\App\${PyFolder}\${Interpreter} ${PyStartFile}" 	; EXEC app with parameters	
 			${Else}
