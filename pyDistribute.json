@@ -6,7 +6,10 @@
         "dllPath": "\\DLLs\\",
         "libPath": "\\Lib\\site-packages\\",
         "pyFileMinfifier": 0,
+        "pythonCustomInterpreter": true,
+        "pythonExeName": "CybeSystems.exe",
         "pythonReleasePath": "\\Python",
+        "pythonWExeName": "CybeSystemsW.exe",
         "startFile": "PyQt5HelloWorld.py",
         "upxIgnore": [
             "qwindows.dll",
@@ -32,7 +35,6 @@
         "PrivateBuild": "",
         "ProductName": "CybeSystems",
         "ProductVersion": "1.0.0.0",
-        "PythonVersion": "34",
         "SpecialBuild": ""
     },
     "packagesArray": [
