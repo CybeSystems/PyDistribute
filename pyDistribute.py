@@ -32,7 +32,9 @@
 
 import os, sys, json
 
-scriptpath = os.path.realpath(os.path.dirname(sys.argv[0])).replace('/','\\')
+#scriptpath = os.path.realpath(os.path.dirname(sys.argv[0])).replace('/','\\')
+scriptpath = os.path.dirname(os.path.realpath(__file__))
+
 scriptpathParentFolder = os.path.dirname(scriptpath)
 sys.path.insert(0, os.path.join(scriptpath, 'lib'))
 
@@ -143,6 +145,10 @@ config["nsisConfig"]['SpecialBuild'] = ""
 ###################################################################################################
 
 config["buildConfig"] = {}
+config["buildConfig"]["cyDistributePath"] = scriptpath
+config["buildConfig"]["pythonCustomInterpreter"] = True
+config["buildConfig"]["pythonExeName"] = "CybeSystems.exe"
+config["buildConfig"]["pythonWExeName"] = "CybeSystemsW.exe"
 config["buildConfig"]['startFile'] = "PyQt5HelloWorld.py"
 config["buildConfig"]['copyStartFile'] = True
 config["buildConfig"]['appIcon'] = "\\AppInfo\\appicon.ico"
@@ -208,12 +214,11 @@ config["packagesPyQt5Array"].append("QtCore.pyd")
 config["packagesPyQt5Array"].append("QtGui.pyd")
 config["packagesPyQt5Array"].append("QtWidgets.pyd")
 
-
 #configFile="pyDistribute.json"
 
-runtime = {}
-runtime['configFile'] = "pyDistribute.json"
-runtime['outputFolder'] = scriptpath
+config['runtime'] = {}
+config['runtime']['configFile'] = "pyDistribute.json"
+config['runtime']['outputFolder'] = scriptpath
 
 def createConfigJson():
     if not os.path.isfile("pyDistribute.json"):
@@ -234,25 +239,36 @@ def getOptions(base_path, args):
 def parseCommandLine():
     options = getOptions(scriptpath, sys.argv[1:])
     if options.config:
-        runtime['configFile'] = options.config
+        config['runtime']['configFile'] = options.config
         print (options.config)
-        print (runtime['configFile'])
+        print (config['runtime']['configFile'])
 
 
 parseCommandLine()
 
-if not os.path.isfile(runtime['configFile']):
-    print("Config File " + runtime['configFile'] + " not exist")
+if not os.path.isfile(config['runtime']['configFile']):
+    print("Config File " + config['runtime']['configFile'] + " not exist")
     sys.exit()
 
-with open(runtime['configFile']) as json_file:
+with open(config['runtime']['configFile']) as json_file:
     json_data = json.load(json_file)
-    config = json_data
 
-runtime['outputFolder'] = os.path.dirname(runtime['configFile'])
+config= dict_merge(config, json_data)
 
-config["buildConfig"]['appIcon'] = runtime['outputFolder'] + config["buildConfig"]['appIcon']
-config["buildConfig"]['pythonReleasePath'] = runtime['outputFolder'] + config["buildConfig"]['pythonReleasePath']
+#Update config['runtime']['configFile'] if new keys was added in config
+with open(config['runtime']['configFile'], 'w') as outfile:
+    configSave = config.copy()
+    #Dont save runtime generated values
+    del configSave['runtime']
+    del configSave["buildConfig"]["cyDistributePath"]
+    json.dump(configSave, outfile, sort_keys = True, indent = 4)
+
+config['runtime']['outputFolder'] = os.path.dirname(config['runtime']['configFile'])
+
+#Override runtime generated configs
+config["buildConfig"]["cyDistributePath"] = scriptpath
+config["buildConfig"]['appIcon'] = config['runtime']['outputFolder'] + config["buildConfig"]['appIcon']
+config["buildConfig"]['pythonReleasePath'] = config['runtime']['outputFolder'] + config["buildConfig"]['pythonReleasePath']
 
 if not os.path.isfile(config["buildConfig"]['appIcon']):
     print("Icon File " + config["buildConfig"]['appIcon'] + " not found")
@@ -263,14 +279,13 @@ print(config["buildConfig"]['pythonReleasePath'])
 
 run_command(getNsisFlags(config))
 if os.path.isfile(scriptpath + "\\Runtime\\" + config["nsisConfig"]['OutFileName']):
-    shutil.copyfile(scriptpath + "\\Runtime\\" + config["nsisConfig"]['OutFileName'], runtime['outputFolder'] + "\\" + config["nsisConfig"]['OutFileName'])
+    shutil.copyfile(scriptpath + "\\Runtime\\" + config["nsisConfig"]['OutFileName'], config['runtime']['outputFolder'] + "\\" + config["nsisConfig"]['OutFileName'])
     os.remove(scriptpath + "\\Runtime\\" + config["nsisConfig"]['OutFileName'])
 if config["nsisConfig"]['CreateConsoleAndWindowVersion']:
     run_command(getNsisFlags(config, True))
     if os.path.isfile(scriptpath + "\\Runtime\\" + config["nsisConfig"]['OutConsoleFileName']):
-        shutil.copyfile(scriptpath + "\\Runtime\\" + config["nsisConfig"]['OutConsoleFileName'], runtime['outputFolder'] + "\\" + config["nsisConfig"]['OutConsoleFileName'])
+        shutil.copyfile(scriptpath + "\\Runtime\\" + config["nsisConfig"]['OutConsoleFileName'], config['runtime']['outputFolder'] + "\\" + config["nsisConfig"]['OutConsoleFileName'])
         os.remove(scriptpath + "\\Runtime\\" + config["nsisConfig"]['OutConsoleFileName'])
-sys.exit()
 
 ###################################################################################################
 # Build Script
@@ -285,10 +300,10 @@ shutil.rmtree(config["buildConfig"]['pythonReleasePath'] ,ignore_errors=True)
 
 run_command(getNsisFlags(config))
 if os.path.isfile(scriptpath + "\\Runtime\\" + config["nsisConfig"]['OutFileName']):
-    shutil.copyfile(scriptpath + "\\Runtime\\" + config["nsisConfig"]['OutFileName'], runtime['outputFolder'] + "\\" + config["nsisConfig"]['OutFileName'])
+    shutil.copyfile(scriptpath + "\\Runtime\\" + config["nsisConfig"]['OutFileName'], config['runtime']['outputFolder'] + "\\" + config["nsisConfig"]['OutFileName'])
     os.remove(scriptpath + "\\Runtime\\" + config["nsisConfig"]['OutFileName'])
 
-run_command(extractDefaultPython(quoteFolder(scriptpath + '\\Runtime\\Python\\Python' + config["nsisConfig"]['PythonVersion'] + '.7z'), config["buildConfig"]['pythonReleasePath']))
+run_command(extractDefaultPython(config, quoteFolder(scriptpath + '\\Runtime\\Python\\Python' + config["nsisConfig"]['PythonVersion'] + '.7z'), config["buildConfig"]['pythonReleasePath']))
 
 print("############################################################################")
 print("# Drop Files")
@@ -365,7 +380,9 @@ print("#########################################################################
 print("# Create named interpreter")
 print("############################################################################")
 
-run_command(getCybeSystemsIconChangerFlags(config["nsisConfig"], config["buildConfig"], config["buildConfig"]['pythonReleasePath']))
+if config["buildConfig"]["pythonCustomInterpreter"]:
+    run_command(getCybeSystemsIconChangerFlags(config, config["buildConfig"]['pythonReleasePath'], config["buildConfig"]["pythonExeName"]))
+    run_command(getCybeSystemsIconChangerFlags(config, config["buildConfig"]['pythonReleasePath'], config["buildConfig"]["pythonWExeName"]))
 
 if config["buildConfig"]['pyFileMinfifier'] != 0:
     # 1: Compile to pyc
@@ -385,7 +402,7 @@ if config["buildConfig"]['useCustomSite.py']:
     shutil.copyfile(scriptpath + '\\Runtime\\Python\\site.py', config["buildConfig"]['pythonReleasePath'] + '\\Lib\\site.py')
 
 if config["buildConfig"]['zipPythonStdLib'] == True:
-    run_command(zipStdLib(config["nsisConfig"], config["buildConfig"]))
+    run_command(zipStdLib(config))
     shutil.rmtree(config["buildConfig"]['pythonReleasePath'] + "\\Lib" ,ignore_errors=True)
 
 shutil.copyfile(scriptpath + '\\Runtime\\Python\\msvcr100.dll', config["buildConfig"]['pythonReleasePath'] + '\\msvcr100.dll')
@@ -396,17 +413,17 @@ print("# Compile Launcher with Nuitka")
 print("############################################################################")
 
 if config["buildConfig"]['createNuitkaLauncher'] == True:
-    runCommandWithPath(nuitkaCompileMain(quoteFolder(runtime['outputFolder'] + '\\' + config["buildConfig"]['startFile']), config["buildConfig"]), os.path.dirname(sys.executable))
+    runCommandWithPath(nuitkaCompileMain(quoteFolder(config['runtime']['outputFolder'] + '\\' + config["buildConfig"]['startFile']), config["buildConfig"]), os.path.dirname(sys.executable))
     #runCommandWithPath(nuitkaCompileStandaloneMain(quoteFolder(scriptpath + '\\' + config["buildConfig"]['startFile']), config["buildConfig"]), os.path.dirname(sys.executable))
-    shutil.copyfile(scriptpath + '\\' + config["buildConfig"]['startFile'].replace('.py','.exe'), config["buildConfig"]['pythonReleasePath'] + '\\' + config["buildConfig"]['startFile'].replace('.py','.exe'))
-    os.remove(scriptpath + '\\' + config["buildConfig"]['startFile'].replace('.py','.exe'))
+    shutil.copyfile(config['runtime']['outputFolder'] + '\\' + config["buildConfig"]['startFile'].replace('.py','.exe'), config["buildConfig"]['pythonReleasePath'] + '\\' + config["buildConfig"]['startFile'].replace('.py','.exe'))
+    os.remove(config['runtime']['outputFolder'] + '\\' + config["buildConfig"]['startFile'].replace('.py','.exe'))
 
 if config["buildConfig"]['copyStartFile'] == True:
-    shutil.copyfile(runtime['outputFolder'] + '\\' + config["buildConfig"]['startFile'], config["buildConfig"]['pythonReleasePath'] + '\\' + config["buildConfig"]['startFile'])
+    shutil.copyfile(config['runtime']['outputFolder'] + '\\' + config["buildConfig"]['startFile'], config["buildConfig"]['pythonReleasePath'] + '\\' + config["buildConfig"]['startFile'])
 
 if config["buildConfig"]['useUpx'] == True:
-    compressUpx(config["buildConfig"]['pythonReleasePath'] ,".dll")
-    compressUpx(config["buildConfig"]['pythonReleasePath'] ,".exe")
+    compressUpx(config, ".dll")
+    compressUpx(config,".exe")
 
 if config["buildConfig"]['useCustomSite.py'] == False and config["buildConfig"]['zipPythonStdLib'] == True:
     print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")

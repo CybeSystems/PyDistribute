@@ -8,6 +8,18 @@ sys.path.insert(0, os.path.join(scriptpath, 'lib'))
 # Functions
 #
 
+from copy import deepcopy
+def dict_merge(a, b):
+    if not isinstance(b, dict):
+        return b
+    result = deepcopy(a)
+    for k, v in b.items():
+        if k in result and isinstance(result[k], dict):
+                result[k] = dict_merge(result[k], v)
+        else:
+            result[k] = deepcopy(v)
+    return result
+
 def run_command(command):
     if isinstance(command, list):
         print("Runnning Shell command: " + ' '.join(command))
@@ -81,7 +93,7 @@ def silentremove(filename):
 
 def getNsisFlags(config, consoleMode=False):
     flags=[]
-    flags.append('Runtime\\NSIS\\makensis.exe')
+    flags.append(config["buildConfig"]["cyDistributePath"] + '\\Runtime\\NSIS\\makensis.exe')
     flags.append('/DFileIcon=' + quoteParameter(config["buildConfig"]['appIcon']))
     flags.append('/DPythonVersion=' + config["nsisConfig"]['PythonVersion'])
 
@@ -98,6 +110,9 @@ def getNsisFlags(config, consoleMode=False):
     flags.append('/DPrivateBuild=' + quoteParameter(config["nsisConfig"]['PrivateBuild']))
     flags.append('/DSpecialBuild=' + quoteParameter(config["nsisConfig"]['SpecialBuild']))
     flags.append('/DPyStartFile=' + config["buildConfig"]['startFile'])
+    if config["buildConfig"]["pythonCustomInterpreter"]:
+        flags.append('/DInterpreter=' + config["buildConfig"]["pythonExeName"])
+        flags.append('/DInterpreterW=' + config["buildConfig"]["pythonWExeName"])
     if consoleMode == True:
         flags.append('/DOutFileName=' + config["nsisConfig"]['OutConsoleFileName'])
         flags.append('/DConsoleMode=1')
@@ -109,26 +124,26 @@ def getNsisFlags(config, consoleMode=False):
     flags.append(scriptpath + '\\Runtime\\CybeSystemsPortable.nsi')
     return(flags)
 
-def extractDefaultPython(path, releasePath):
+def extractDefaultPython(config, path, releasePath):
     flags=[]
-    flags.append('Runtime\\7zip\\7z.exe')
+    flags.append(config["buildConfig"]["cyDistributePath"] + '\\Runtime\\7zip\\7z.exe')
     flags.append('x -o' + quoteFolder(releasePath))
     flags.append(path)
     return(flags)
 
-def getCybeSystemsIconChangerFlags(nsisConfig, buildConfig, releasePath):
+def getCybeSystemsIconChangerFlags(config, releasePath, newname):
     flags=[]
-    flags.append('Runtime\\CybeSystemsIconChanger\\changeIcon.exe')
+    flags.append(config["buildConfig"]["cyDistributePath"] + '\\Runtime\\CybeSystemsIconChanger\\changeIcon.exe')
     flags.append(quoteFolder(releasePath + '\\python.exe'))
-    flags.append(quoteFolder(releasePath + '\\' + nsisConfig['ProductName'] + '.exe'))
-    flags.append(quoteFolder(buildConfig['appIcon']))
+    flags.append(quoteFolder(releasePath + '\\' + newname))
+    flags.append(quoteFolder(config["buildConfig"]['appIcon']))
     return(flags)
 
-def zipStdLib(nsisConfig, buildConfig):
+def zipStdLib(config):
     flags=[]
-    flags.append('Runtime\\7zip\\7z.exe')
-    flags.append('a -tzip -r -mx=9 ' + quoteFolder(buildConfig['pythonReleasePath'] + "\\Python") + nsisConfig['PythonVersion'] + '.zip')
-    flags.append(quoteFolder(buildConfig['pythonReleasePath'] + "\\lib\\*"))
+    flags.append(config["buildConfig"]["cyDistributePath"] + '\\Runtime\\7zip\\7z.exe')
+    flags.append('a -tzip -r -mx=9 ' + quoteFolder(config["buildConfig"]['pythonReleasePath'] + "\\Python") + config['nsisConfig']['PythonVersion'] + '.zip')
+    flags.append(quoteFolder(config["buildConfig"]['pythonReleasePath'] + "\\lib\\*"))
     return(flags)
 
 dontUpx=[]
@@ -136,19 +151,19 @@ dontUpx.append("qwindows.dll")
 dontUpx.append("qoffscreen.dll")
 dontUpx.append("qminimal.dll")
 
-def compressUpx(path,extension):
-    for root, _, files in os.walk(path):
+def compressUpx(config,extension):
+    for root, _, files in os.walk(config["buildConfig"]['pythonReleasePath']):
         for afile in files:
             fullpath = os.path.join(root, afile)
             if os.path.splitext(afile)[1] == extension:
                 print (afile)
                 if afile not in dontUpx:
                     print("UPX compressing", fullpath)
-                    run_command(upxFile(fullpath))
+                    run_command(upxFile(config, fullpath))
 
-def upxFile(file):
+def upxFile(config, file):
     flags=[]
-    flags.append('Runtime\\upx.exe')
+    flags.append(config["buildConfig"]["cyDistributePath"] + '\\Runtime\\upx.exe')
     flags.append(quoteFolder(file))
     return(flags)
 

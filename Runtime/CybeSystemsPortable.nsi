@@ -77,7 +77,12 @@
 !ifndef ConsoleMode
 	!define ConsoleMode "1"
 !endif 
-
+!ifndef Interpreter
+	!define Interpreter "python.exe"
+!endif 
+!ifndef InterpreterW
+	!define InterpreterW "pythonw.exe"
+!endif 
 ; **************************************************************************
 ; === Best Compression ===
 ; **************************************************************************
@@ -138,29 +143,38 @@ SectionEnd
 ;Launch with make ${FILENAME}
 Function Launch
 	${GetParameters} $0 	; Read command line parameters
-	;ReadIniStr ${TEMP1} 'Launcher.ini' 'Example1' 'Example1Test'
-	 
-	 ;IntCmp $1 1 +3
-	;Check CybeSystems.exe itself (without x86, x64)
-	
-	IfFileExists "$EXEDIR\${PyFolder}\python.exe" OneFolder
+
+	IfFileExists "$EXEDIR\${PyFolder}\${Interpreter}" OneFolder TwoFolderCheck
 	OneFolder:
-		
-		!define PYTHON_PATH "$EXEDIR\${PyFolder}"
-
-		;StrCpy $R0 "$R0${PYTHON_PATH}"
-		;StrCpy $R1 "$R1${PyStartFile}"
-
-		;System::Call 'Kernel32::SetEnvironmentVariable(t "PYTHONPATH",t R0)i' 	; Set PYTHONPATH temporarily
-		;System::Call 'Kernel32::SetEnvironmentVariable(t "PYTHONSTARTUP",t R1)i'			; Set Python prompt temporarily	
-		;SetOutPath "$EXEDIR"
 		${If} ${ConsoleMode} == "1"
-			Exec "cmd.exe /K $EXEDIR\${PyFolder}\python.exe ${PyStartFile}" 	; EXEC app with parameters	
+			Exec "cmd.exe /K $EXEDIR\${PyFolder}\${Interpreter} ${PyStartFile}" 	; EXEC app with parameters	
 		${Else}
-			Exec "$EXEDIR\${PyFolder}\pythonw.exe ${PyStartFile}" 	; EXEC app with parameters	
+			Exec "$EXEDIR\${PyFolder}\${InterpreterW} ${PyStartFile}" 	; EXEC app with parameters	
 		${EndIf}
 		goto end_of_test ;<== important for not continuing on the else branch
 
+	TwoFolderCheck:
+		IfFileExists "$EXEDIR\App\${PyFolder}\${Interpreter}" TwoFolder ThreeFolderCheck
+		TwoFolder:
+			SetOutPath "$EXEDIR\App"
+			${If} ${ConsoleMode} == "1"
+				Exec "cmd.exe /K $EXEDIR\App\${PyFolder}\${Interpreter} ${PyStartFile}" 	; EXEC app with parameters	
+			${Else}
+				Exec "$EXEDIR\App\${PyFolder}\${InterpreterW} ${PyStartFile}" 	; EXEC app with parameters	
+			${EndIf}
+			goto end_of_test ;<== important for not continuing on the else branch
+	
+	ThreeFolderCheck:
+		IfFileExists "$EXEDIR\${ProductName}\App\${PyFolder}\${Interpreter}" ThreeFolder PastMissingCheck
+		ThreeFolder:
+			SetOutPath "$EXEDIR\${ProductName}\App"
+			${If} ${ConsoleMode} == "1"
+				Exec "cmd.exe /K $EXEDIR\${ProductName}\App\${PyFolder}\${Interpreter} ${PyStartFile}" 	; EXEC app with parameters	
+			${Else}
+				Exec "$EXEDIR\${ProductName}\App\${PyFolder}\${InterpreterW} ${PyStartFile}" 	; EXEC app with parameters	
+			${EndIf}	
+			goto end_of_test ;<== important for not continuing on the else branch
+			
 			
 	PastMissingCheck:
 		MessageBox MB_OK|MB_ICONEXCLAMATION `${ProductName} was not found in $EXEDIR`
