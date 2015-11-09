@@ -183,7 +183,7 @@ def defaultConfig():
     config['runtime']['buildPath'] = "Build"
     config['runtime']['pythonReleasePath'] = "\\" + config['runtime']['buildPath'] + "\\Python" + ', '.join(map(str,sys.version_info[:2])).replace(", ","")
     config['runtime']['pythonFolder'] = "Python" + ', '.join(map(str,sys.version_info[:2])).replace(", ","")
-
+    config['runtime']['releaseFolder'] = config['runtime']['outputFolder'] + "\\" + 'Release_' + detectOS() + "_" + detectArchitecture()
 
     return config
 
@@ -235,8 +235,13 @@ def getConfig(configFile=None):
     config['runtime']['outputFolder'] = os.path.dirname(config['runtime']['configFile'])
     config['buildConfig']['appIcon'] = config['runtime']['outputFolder'] + config['buildConfig']['appIcon']
     config['runtime']['pythonReleasePath'] = config['runtime']['outputFolder'] + config['runtime']['pythonReleasePath']
+    config['runtime']['releaseFolder'] = config['runtime']['outputFolder'] + "\\" + 'Release_' + detectOS() + "_" + detectArchitecture()
 
     #createConfigJson(config)
+
+    #Cleanup Release Folder
+    shutil.rmtree(config['runtime']['releaseFolder'] ,ignore_errors=True)
+
     #Cleanup Build Folder
     shutil.rmtree(config['runtime']['outputFolder'] + '\\' + config['runtime']['buildPath'] ,ignore_errors=True)
 
@@ -296,7 +301,7 @@ def correctFolders(config, recursive=False):
                         resolvedFolder.append(os.path.dirname(fullpath))
                         print("Moving Folder " + os.path.dirname(fullpath) + " to DLL Folder (contains .pyd or .dll files)")
                         libraryName = os.path.split(os.path.dirname(fullpath))[1]
-                        shutil.copytree(os.path.dirname(fullpath), config['runtime']['pythonReleasePath'] + '\\DLLs\\' + libraryName)
+                        copytree(os.path.dirname(fullpath), config['runtime']['pythonReleasePath'] + '\\DLLs\\' + libraryName)
                         shutil.rmtree(os.path.dirname(fullpath) ,ignore_errors=True)
                 else:
                     print("Moving File " + os.path.dirname(fullpath) + " to DLL Folder (contains .pyd or .dll files)")
@@ -309,7 +314,7 @@ def correctFolders(config, recursive=False):
     for result in os.listdir(config['runtime']['pythonReleasePath'] + "\\Lib\\site-packages"):
         print (root)
         if os.path.isdir(config['runtime']['pythonReleasePath'] + "\\Lib\\site-packages\\" + result):
-            shutil.copytree(config['runtime']['pythonReleasePath'] + "\\Lib\\site-packages\\" + result, config['runtime']['pythonReleasePath'] + '\\Lib\\' + result)
+            copytree(config['runtime']['pythonReleasePath'] + "\\Lib\\site-packages\\" + result, config['runtime']['pythonReleasePath'] + '\\Lib\\' + result)
             shutil.rmtree(config['runtime']['pythonReleasePath'] + "\\Lib\\site-packages\\" + result ,ignore_errors=True)
         if os.path.isfile(config['runtime']['pythonReleasePath'] + "\\Lib\\site-packages\\" + result):
             shutil.copyfile(config['runtime']['pythonReleasePath'] + "\\Lib\\site-packages\\" + result, config['runtime']['pythonReleasePath'] + '\\Lib\\' + result)
@@ -655,26 +660,24 @@ def buildRelease(config):
     shutil.rmtree(config['runtime']['pythonReleasePath'] + '/TempLib' ,ignore_errors=True)
     shutil.rmtree(config['runtime']['pythonReleasePath'] + '/TempDll' ,ignore_errors=True)
 
-    releaseFolderName = config['runtime']['outputFolder'] + "\\" + 'Release_' + detectOS() + "_" + detectArchitecture()
-
     #Prepare Portable Version
-    shutil.rmtree(releaseFolderName ,ignore_errors=True)
     if config['release']['usePortableAppsStructure']:
-        shutil.copytree(config['runtime']['outputFolder'] + '\\AppInfo', releaseFolderName + '/App/AppInfo')
-        shutil.copytree(os.path.dirname(config['runtime']['outputFolder']) + '\\Other', releaseFolderName + '\\Other')
-        shutil.copyfile(os.path.dirname(config['runtime']['outputFolder']) + '\\help.html', releaseFolderName + '\\help.html')
+        copytree(config['runtime']['outputFolder'] + '\\AppInfo', config['runtime']['releaseFolder'] + '/App/AppInfo')
+        if os.path.isdir(os.path.dirname(config['runtime']['outputFolder']) + '\\Other'):
+            copytree(os.path.dirname(config['runtime']['outputFolder']) + '\\Other', config['runtime']['releaseFolder'] + '\\Other')
+        shutil.copyfile(os.path.dirname(config['runtime']['outputFolder']) + '\\help.html', config['runtime']['releaseFolder'] + '\\help.html')
     if os.path.isdir(config['runtime']['outputFolder'] + '\\DefaultData'):
-        shutil.copytree(config['runtime']['outputFolder'] + '\\DefaultData', releaseFolderName + '/App/DefaultData')
+        copytree(config['runtime']['outputFolder'] + '\\DefaultData', config['runtime']['releaseFolder'] + '/App/DefaultData')
     if os.path.isdir(config['runtime']['outputFolder'] + '\\Ressource'):
-        shutil.copytree(config['runtime']['outputFolder'] + '\\Ressource', releaseFolderName + '/App/Ressource')
+        copytree(config['runtime']['outputFolder'] + '\\Ressource', config['runtime']['releaseFolder'] + '/App/Ressource')
 
-    shutil.copytree(config['runtime']['buildPath'] + "\\" + config['runtime']['pythonFolder'], releaseFolderName + '/App/' + config['runtime']['pythonFolder'])
+    copytree(config['runtime']['buildPath'] + "\\" + config['runtime']['pythonFolder'], config['runtime']['releaseFolder'] + '/App/' + config['runtime']['pythonFolder'])
 
-    shutil.copyfile(config['runtime']['outputFolder'] + '\\' + config['nsisConfig']['OutFileName'], releaseFolderName + '\\' + config['nsisConfig']['OutFileName'])
-    shutil.copyfile(config['runtime']['outputFolder'] + '\\' + config['nsisConfig']['OutConsoleFileName'], releaseFolderName + '\\' + config['nsisConfig']['OutConsoleFileName'])
+    shutil.copyfile(config['runtime']['outputFolder'] + '\\' + config['nsisConfig']['OutFileName'], config['runtime']['releaseFolder'] + '\\' + config['nsisConfig']['OutFileName'])
+    shutil.copyfile(config['runtime']['outputFolder'] + '\\' + config['nsisConfig']['OutConsoleFileName'], config['runtime']['releaseFolder'] + '\\' + config['nsisConfig']['OutConsoleFileName'])
 
-    shutil.copyfile(config['runtime']['outputFolder'] + '\\' + config['nsisConfig']['OutFileName'], releaseFolderName + '\\App\\' + config['nsisConfig']['OutFileName'])
-    shutil.copyfile(config['runtime']['outputFolder'] + '\\' + config['nsisConfig']['OutConsoleFileName'], releaseFolderName + '\\App\\' + config['nsisConfig']['OutConsoleFileName'])
+    shutil.copyfile(config['runtime']['outputFolder'] + '\\' + config['nsisConfig']['OutFileName'], config['runtime']['releaseFolder'] + '\\App\\' + config['nsisConfig']['OutFileName'])
+    shutil.copyfile(config['runtime']['outputFolder'] + '\\' + config['nsisConfig']['OutConsoleFileName'], config['runtime']['releaseFolder'] + '\\App\\' + config['nsisConfig']['OutConsoleFileName'])
 
     #Cleanup
     os.remove(config['runtime']['outputFolder'] + '\\' + config['nsisConfig']['OutFileName'])
@@ -682,11 +685,11 @@ def buildRelease(config):
     shutil.rmtree(config['runtime']['outputFolder'] + '\\' + config['runtime']['buildPath'] ,ignore_errors=True)
 
     if config['release']['create7zipRelease']:
-        run_command(create7zipRelease(config, releaseFolderName + "\\*", releaseFolderName + '/OdooPortable_1.0.7z'))
+        run_command(create7zipRelease(config, config['runtime']['releaseFolder'] + "\\*", config['runtime']['releaseFolder'] + '/OdooPortable_' + config['nsisConfig']['FileVersion'] + '.7z'))
 
     if config['release']['createPortableApp'] and config['release']['usePortableAppsStructure']:
         PortableAppsInstallerPath = os.path.dirname(os.path.dirname(config['runtime']['outputFolder'])) + "/PortableApps.comInstaller/PortableApps.comInstaller.exe"
-        run_command(createPortableAppsInstaller(PortableAppsInstallerPath, releaseFolderName))
+        run_command(createPortableAppsInstaller(PortableAppsInstallerPath, config['runtime']['releaseFolder']))
 
 
 ###################################################################################################
