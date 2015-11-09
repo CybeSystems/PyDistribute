@@ -144,35 +144,35 @@ SectionEnd
 Function Launch
 	${GetParameters} $0 	; Read command line parameters
 
-	IfFileExists "$EXEDIR\${PyFolder}\${Interpreter}" OneFolder TwoFolderCheck
+	IfFileExists "$EXEDIR\${PyFolder}${PythonVersion}\${Interpreter}" OneFolder TwoFolderCheck
 	OneFolder:
-		SetOutPath "$EXEDIR\${PyFolder}"
+		SetOutPath "$EXEDIR\${PyFolder}${PythonVersion}"
 		${If} ${ConsoleMode} == "1"
-			Exec "cmd.exe /K $EXEDIR\${PyFolder}\${Interpreter} ${PyStartFile}" 	; EXEC app with parameters	
+			Exec "cmd.exe /K $EXEDIR\${PyFolder}${PythonVersion}\${Interpreter} ${PyStartFile}" 	; EXEC app with parameters	
 		${Else}
-			Exec "$EXEDIR\${PyFolder}\${InterpreterW} ${PyStartFile}" 	; EXEC app with parameters	
+			Exec "$EXEDIR\${PyFolder}${PythonVersion}\${InterpreterW} ${PyStartFile}" 	; EXEC app with parameters	
 		${EndIf}
 		goto end_of_test ;<== important for not continuing on the else branch
 
 	TwoFolderCheck:
-		IfFileExists "$EXEDIR\App\${PyFolder}\${Interpreter}" TwoFolder ThreeFolderCheck
+		IfFileExists "$EXEDIR\App\${PyFolder}${PythonVersion}\${Interpreter}" TwoFolder ThreeFolderCheck
 		TwoFolder:
-			SetOutPath "$EXEDIR\App\${PyFolder}"
+			SetOutPath "$EXEDIR\App\${PyFolder}${PythonVersion}"
 			${If} ${ConsoleMode} == "1"
-				Exec "cmd.exe /K $EXEDIR\App\${PyFolder}\${Interpreter} ${PyStartFile}" 	; EXEC app with parameters	
+				Exec "cmd.exe /K $EXEDIR\App\${PyFolder}${PythonVersion}\${Interpreter} ${PyStartFile}" 	; EXEC app with parameters	
 			${Else}
-				Exec "$EXEDIR\App\${PyFolder}\${InterpreterW} ${PyStartFile}" 	; EXEC app with parameters	
+				Exec "$EXEDIR\App\${PyFolder}${PythonVersion}\${InterpreterW} ${PyStartFile}" 	; EXEC app with parameters	
 			${EndIf}
 			goto end_of_test ;<== important for not continuing on the else branch
 	
 	ThreeFolderCheck:
-		IfFileExists "$EXEDIR\${ProductName}\App\${PyFolder}\${Interpreter}" ThreeFolder PastMissingCheck
+		IfFileExists "$EXEDIR\${ProductName}\App\${PyFolder}${PythonVersion}\${Interpreter}" ThreeFolder PastMissingCheck
 		ThreeFolder:
-			SetOutPath "$EXEDIR\${ProductName}\App${PyFolder}"
+			SetOutPath "$EXEDIR\${ProductName}\App${PyFolder}${PythonVersion}"
 			${If} ${ConsoleMode} == "1"
-				Exec "cmd.exe /K $EXEDIR\${ProductName}\App\${PyFolder}\${Interpreter} ${PyStartFile}" 	; EXEC app with parameters	
+				Exec "cmd.exe /K $EXEDIR\${ProductName}\App\${PyFolder}${PythonVersion}\${Interpreter} ${PyStartFile}" 	; EXEC app with parameters	
 			${Else}
-				Exec "$EXEDIR\${ProductName}\App\${PyFolder}\${InterpreterW} ${PyStartFile}" 	; EXEC app with parameters	
+				Exec "$EXEDIR\${ProductName}\App\${PyFolder}${PythonVersion}\${InterpreterW} ${PyStartFile}" 	; EXEC app with parameters	
 			${EndIf}	
 			goto end_of_test ;<== important for not continuing on the else branch
 			

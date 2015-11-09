@@ -237,6 +237,8 @@ def getConfig(configFile=None):
     config['runtime']['pythonReleasePath'] = config['runtime']['outputFolder'] + config['runtime']['pythonReleasePath']
 
     #createConfigJson(config)
+    #Cleanup Build Folder
+    shutil.rmtree(config['runtime']['outputFolder'] + '\\' + config['runtime']['buildPath'] ,ignore_errors=True)
 
     return config
 
@@ -281,7 +283,7 @@ def validatePyDistribute(config):
         print(os.path.dirname(os.path.dirname(config['runtime']['outputFolder'])) + "/PortableApps.comInstaller/PortableApps.comInstaller.exe" + " not found (not a valid PortableApps Structure)")
         sys.exit()
 
-def movePydDll(config, recursive=False):
+def correctFolders(config, recursive=False):
     ignoreFolder = ['site-packages','Lib']
     resolvedFolder = []
     extension = ['.pyd', '.dll']
@@ -300,6 +302,19 @@ def movePydDll(config, recursive=False):
                     print("Moving File " + os.path.dirname(fullpath) + " to DLL Folder (contains .pyd or .dll files)")
                     shutil.copyfile(fullpath, config['runtime']['pythonReleasePath'] + '\\DLLs\\' + afile)
                     os.remove(fullpath)
+
+    # Minify -> Dont copy uneeded files
+    minifyPythonInterpreter(config)
+    #Move Files from \\Lib\\site-packages to \\Lib -> \\Lib\\site-packages dont work with zipped files
+    for result in os.listdir(config['runtime']['pythonReleasePath'] + "\\Lib\\site-packages"):
+        print (root)
+        if os.path.isdir(config['runtime']['pythonReleasePath'] + "\\Lib\\site-packages\\" + result):
+            shutil.copytree(config['runtime']['pythonReleasePath'] + "\\Lib\\site-packages\\" + result, config['runtime']['pythonReleasePath'] + '\\Lib\\' + result)
+            shutil.rmtree(config['runtime']['pythonReleasePath'] + "\\Lib\\site-packages\\" + result ,ignore_errors=True)
+        if os.path.isfile(config['runtime']['pythonReleasePath'] + "\\Lib\\site-packages\\" + result):
+            shutil.copyfile(config['runtime']['pythonReleasePath'] + "\\Lib\\site-packages\\" + result, config['runtime']['pythonReleasePath'] + '\\Lib\\' + result)
+            os.remove(config['runtime']['pythonReleasePath'] + "\\Lib\\site-packages\\" + result)
+
 
 def parseRequirementsTxt(config, requirements):
     if os.path.isfile(requirements):
@@ -498,12 +513,12 @@ def addPythonInterpreter(config):
 
 
 def addCustomLibrarys(config, path):
-    if not os.path.isdir(config['runtime']['pythonReleasePath'] + '\\Lib\\site-packages\\'):
-        os.makedirs(config['runtime']['pythonReleasePath'] + '\\Lib\\site-packages\\')
+    if not os.path.isdir(config['runtime']['pythonReleasePath'] + '\\Lib\\'):
+        os.makedirs(config['runtime']['pythonReleasePath'] + '\\Lib\\')
     if os.path.isdir(path):
-        copytree(path, config['runtime']['pythonReleasePath'] + '\\Lib\\site-packages\\' + os.path.split(path)[1])
+        copytree(path, config['runtime']['pythonReleasePath'] + '\\Lib\\' + os.path.split(path)[1])
     elif os.path.isfile(path):
-        shutil.copyfile(path, config['runtime']['pythonReleasePath'] + '\\Lib\\site-packages\\' + os.path.split(path)[1])
+        shutil.copyfile(path, config['runtime']['pythonReleasePath'] + '\\Lib\\' + os.path.split(path)[1])
 
 def minifyPythonInterpreter(config):
     dropCacheFiles(config['runtime']['pythonReleasePath'])
@@ -587,6 +602,10 @@ def createDistribution(config):
 
 def cyDistribute(config):
     validatePyDistribute(config)
+
+    print("############################################################################")
+    print("# Delete " + config['runtime']['outputFolder'] + '\\' + config['runtime']['buildPath'])
+    print("############################################################################")
     addNsisLauncher(config)
     addPythonInterpreter(config)
     print("############################################################################")
@@ -600,7 +619,7 @@ def cyDistribute(config):
     print("############################################################################")
     print("# Move .pyd and .dll files/librarys to DLLs Folder")
     print("############################################################################")
-    movePydDll(config)
+    correctFolders(config)
     print("############################################################################")
     print("# Drop Files")
     print("############################################################################")
