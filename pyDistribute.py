@@ -685,7 +685,7 @@ def buildRelease(config):
     shutil.rmtree(config['runtime']['outputFolder'] + '\\' + config['runtime']['buildPath'] ,ignore_errors=True)
 
     if config['release']['create7zipRelease']:
-        run_command(create7zipRelease(config, config['runtime']['releaseFolder'] + "\\*", config['runtime']['releaseFolder'] + '/OdooPortable_' + config['nsisConfig']['FileVersion'] + '.7z'))
+        run_command(create7zipRelease(config, config['runtime']['releaseFolder'] + "\\*", config['runtime']['releaseFolder'] + '/' + config['nsisConfig']['ProductName'] + '_' + config['nsisConfig']['FileVersion'] + '.7z'))
 
     if config['release']['createPortableApp'] and config['release']['usePortableAppsStructure']:
         PortableAppsInstallerPath = os.path.dirname(os.path.dirname(config['runtime']['outputFolder'])) + "/PortableApps.comInstaller/PortableApps.comInstaller.exe"
