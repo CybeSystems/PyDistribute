@@ -37,9 +37,7 @@
         "ProductVersion": "1.0.0.0",
         "SpecialBuild": ""
     },
-    "packagesArray": [
-        "psutil"
-    ],
+    "packagesArray": [],
     "packagesHookArray": [
         "PyQt5"
     ],
@@ -56,5 +54,10 @@
         "QtCore.pyd",
         "QtGui.pyd",
         "QtWidgets.pyd"
-    ]
+    ],
+    "release": {
+        "create7zipRelease": true,
+        "createPortableApp": true,
+        "usePortableAppsStructure": true
+    }
 }
